@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OWASP A04 — New User Voucher Abuse Demo</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:#f5f7fb;color:#172033}
+.wrap{max-width:1120px;margin:auto;padding:26px}.eyebrow{font-size:12px;font-weight:800;letter-spacing:.08em;color:#68738d}
+h1{margin:5px 0 7px;font-size:clamp(28px,4vw,43px)}.lead{color:#65708a;line-height:1.55;margin:0 0 20px}
+.grid{display:grid;grid-template-columns:1.05fr .95fr;gap:18px}.card{background:white;border:1px solid #e1e6ef;border-radius:18px;padding:20px;box-shadow:0 12px 35px #17203312}
+.product{display:grid;grid-template-columns:145px 1fr;gap:18px;align-items:center}.pic{height:145px;border-radius:16px;background:linear-gradient(135deg,#20283b,#65708b);display:grid;place-items:center;font-size:58px}
+.price{font-size:27px;font-weight:900}.muted{color:#77829a;font-size:13px}.coupon{background:#f3f0ff;border:1px dashed #7568df;border-radius:13px;padding:13px;margin-top:17px}
+.switch{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}.mode,button{border:0;border-radius:11px;padding:12px;font-weight:850;cursor:pointer}.mode{background:#edf0f6;color:#4b5770}.mode.active{background:#5c50d8;color:white}
+label{display:block;font-size:12px;color:#69758e;margin:11px 0 6px}input{width:100%;border:1px solid #d8deea;border-radius:10px;padding:12px;font-size:15px}
+.primary{width:100%;margin-top:12px;background:#1d2638;color:white}.attack{width:100%;margin-top:9px;background:#e54f68;color:white}.reset{width:100%;margin-top:9px;background:#edf0f6;color:#3f4b64}
+.checkout{margin-top:16px;border-top:1px solid #edf0f5;padding-top:13px}.row{display:flex;justify-content:space-between;padding:5px 0}.discount{color:#188a50}.total{font-size:20px;font-weight:900}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:16px}.stat{background:#f5f7fb;border-radius:12px;padding:11px;font-size:11px;color:#75809a}.stat b{display:block;color:#182238;font-size:20px;margin-top:4px}
+.alert{display:none;padding:11px;margin-top:12px;border-radius:10px;background:#fff0f2;color:#a8213a;font-size:13px}.alert.ok{background:#eaf9f0;color:#14703f}
+.log{height:190px;overflow:auto;background:#101726;color:#cad3e7;border-radius:12px;padding:10px;margin-top:12px;font:11px ui-monospace,monospace}.log div{padding:4px;border-bottom:1px solid #ffffff0d}
+.explain{margin-top:18px;background:#11182a;color:#dce4f6;border-radius:18px;padding:18px;line-height:1.55}.explain b{color:white}.flow{font-weight:800;margin-top:8px;color:#c9c2ff}
+@media(max-width:800px){.grid{grid-template-columns:1fr}.product{grid-template-columns:1fr}.pic{height:120px}.wrap{padding:15px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="eyebrow">OWASP A04:2021 • INSECURE DESIGN • BUSINESS LOGIC ABUSE</div>
+<h1>🛍️ NEWUSER50 Voucher Demo</h1>
+<p class="lead">Chương trình dành cho <b>khách hàng mới</b>: giảm 50% đơn đầu tiên. Demo cho thấy rủi ro khi thiết kế mặc định rằng <b>“tài khoản mới = khách hàng mới”</b>.</p>
+
+<div class="grid">
+<section class="card">
+ <div class="product">
+  <div class="pic">🎧</div>
+  <div><div class="muted">PREMIUM AUDIO</div><h2>AirBeat Pro</h2><div class="price">1.000.000đ</div><div class="muted">Miễn phí vận chuyển • Có sẵn</div></div>
+ </div>
+ <div class="coupon"><b>🎁 NEWUSER50</b><br><span class="muted">Giảm 50% cho đơn hàng đầu tiên của khách hàng mới.</span></div>
+ <div class="checkout">
+  <div class="row"><span>Giá sản phẩm</span><span>1.000.000đ</span></div>
+  <div class="row discount"><span>Voucher NEWUSER50</span><span id="discount">-500.000đ</span></div>
+  <div class="row total"><span>Thanh toán</span><span>500.000đ</span></div>
+ </div>
+ <div class="stats">
+  <div class="stat">Tài khoản đã thử<b id="accounts">0</b></div>
+  <div class="stat">Voucher thành công<b id="success">0</b></div>
+  <div class="stat">Tổng ưu đãi<b id="loss">0đ</b></div>
+ </div>
+</section>
+
+<aside class="card">
+ <div class="switch"><button id="bad" class="mode active">Insecure</button><button id="good" class="mode">Secure</button></div>
+ <label>Email tài khoản mới</label><input id="email" value="newuser01@example.com">
+ <label>Số điện thoại xác minh</label><input id="phone" value="0901234567">
+ <label>Phương thức thanh toán (mô phỏng token)</label><input id="payment" value="CARD-DEMO-001">
+ <label>Địa chỉ giao hàng</label><input id="address" value="12 Demo Street">
+ <button id="apply" class="primary">ÁP DỤNG NEWUSER50 & ĐẶT HÀNG</button>
+ <button id="simulate" class="attack">MÔ PHỎNG 4 TÀI KHOẢN MỚI</button>
+ <button id="reset" class="reset">RESET DEMO</button>
+ <div id="alert" class="alert"></div>
+ <div id="log" class="log"><div>Demo sẵn sàng.</div></div>
+</aside>
+</div>
+
+<div class="explain">
+ <b>Điểm lỗi thiết kế:</b> Insecure Mode chỉ hỏi “account này đã dùng voucher chưa?”, nên mỗi account mới lại được xem là một khách hàng mới.
+ <div class="flow">1 người → nhiều account mới → NEWUSER50 nhiều lần → ưu đãi bị lạm dụng</div>
+ <br><b>Secure Mode:</b> demo sử dụng thêm các tín hiệu như số điện thoại, payment token và địa chỉ để phát hiện khả năng cùng một khách hàng đang tạo nhiều account. Trong hệ thống thật, các tín hiệu này nên phục vụ risk-based anti-abuse và xác minh phù hợp, không nên coi riêng một tín hiệu là bằng chứng tuyệt đối.
+</div>
+</div>
+
+<script>
+let mode='bad', attempts=0, successes=0, loss=0;
+const usedAccounts=new Set(), seenSignals=new Set();
+const $=s=>document.querySelector(s);
+function money(n){return n.toLocaleString('vi-VN')+'đ'}
+function render(){$('#accounts').textContent=attempts;$('#success').textContent=successes;$('#loss').textContent=money(loss)}
+function log(t){const d=document.createElement('div');d.textContent=t;$('#log').prepend(d)}
+function alertMsg(t,ok=false){$('#alert').style.display='block';$('#alert').className='alert'+(ok?' ok':'');$('#alert').textContent=t}
+function signal(){return [$('#phone').value.trim(),$('#payment').value.trim(),$('#address').value.trim().toLowerCase()].join('|')}
+function order(){
+ const email=$('#email').value.trim().toLowerCase(); if(!email){alertMsg('Vui lòng nhập email.');return false}
+ attempts++;
+ if(usedAccounts.has(email)){alertMsg('Tài khoản này đã sử dụng NEWUSER50.');log('❌ Account đã dùng voucher.');render();return false}
+ const sig=signal();
+ if(mode==='good' && seenSignals.has(sig)){
+   alertMsg('⚠ Phát hiện dấu hiệu trùng khách hàng trên tài khoản mới → yêu cầu xác minh / không tự động cấp ưu đãi.');
+   log(`🛡 Secure: ${email} bị đưa vào bước xác minh vì tín hiệu chống abuse trùng.`);
+   render();return false;
+ }
+ usedAccounts.add(email); seenSignals.add(sig); successes++; loss+=500000; render();
+ alertMsg('✓ NEWUSER50 áp dụng thành công — giảm 500.000đ.',true);
+ log(`✅ ${email}: NEWUSER50 thành công → -500.000đ.`);
+ return true;
+}
+function reset(){attempts=successes=loss=0;usedAccounts.clear();seenSignals.clear();render();$('#alert').style.display='none';$('#log').innerHTML='<div>Demo đã reset.</div>';$('#email').value='newuser01@example.com'}
+function setMode(m){mode=m;reset();$('#bad').classList.toggle('active',m==='bad');$('#good').classList.toggle('active',m==='good');log(m==='bad'?'⚠ Insecure: chỉ kiểm tra theo account.':'🛡 Secure: có kiểm soát anti-abuse bổ sung.')}
+$('#apply').onclick=order;$('#reset').onclick=reset;$('#bad').onclick=()=>setMode('bad');$('#good').onclick=()=>setMode('good');
+$('#simulate').onclick=()=>{
+ let i=1;
+ const timer=setInterval(()=>{
+  if(i>4){clearInterval(timer);return}
+  $('#email').value=`newuser0${i}@example.com`;
+  // Same real-world customer signals; only account changes.
+  order(); i++;
+ },450)
+};
+render();
+</script>
+</body></html>
